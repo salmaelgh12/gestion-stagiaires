@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- TEST12345-CORRECTION-FICHIER -->
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -22,7 +21,14 @@
         .topnav .logo-text { font-weight: 800; font-size: 1.2rem; color: #1e293b; }
         .topnav .logo-text .accent { color: #0F6E56; }
 
-        .topnav .right-side { display: flex; align-items: center; gap: 1rem; }
+        .topnav .right-side { display: flex; align-items: center; gap: 1.2rem; }
+        .messages-icon {
+            position: relative;
+            color: #64748b;
+            font-size: 1.3rem;
+            text-decoration: none;
+        }
+        .messages-icon:hover { color: #0F6E56; }
         .user-info { text-align: right; }
         .user-info .name { font-weight: 700; color: #1e293b; font-size: 0.9rem; }
         .role-badge {
@@ -102,22 +108,22 @@
         @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; transform: translateX(20px); } }
 
         .ia-bubble {
-            position: fixed !important;
-            bottom: 24px !important;
-            right: 24px !important;
-            width: 60px !important;
-            height: 60px !important;
-            border-radius: 50% !important;
-            background: #ff3d00 !important;
-            color: white !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            font-size: 1.6rem !important;
-            border: 3px solid white !important;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
-            cursor: pointer !important;
-            z-index: 999999 !important;
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: #0F6E56;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            border: none;
+            box-shadow: 0 8px 24px rgba(15,110,86,0.35);
+            cursor: pointer;
+            z-index: 9998;
             transition: transform 0.2s;
         }
         .ia-bubble:hover { transform: scale(1.08); }
@@ -134,7 +140,7 @@
             display: none;
             flex-direction: column;
             overflow: hidden;
-            z-index: 999998;
+            z-index: 9998;
         }
         .ia-chat-window.open { display: flex; }
         .ia-chat-header {
@@ -226,6 +232,9 @@
         </div>
 
         <div class="right-side">
+            <a href="/messages" class="messages-icon" title="Messagerie">
+                <i class="bi bi-envelope-fill"></i>
+            </a>
             <div class="user-info">
                 <div class="name">{{ trim(Auth::user()->prenom.' '.Auth::user()->nom) }}</div>
                 <span class="role-badge">{{ Auth::user()->role->nom_role }}</span>
@@ -250,21 +259,21 @@
         @yield('content')
     </div>
 
-    <button class="ia-bubble" id="iaBubble" type="button">
+    <button class="ia-bubble" id="iaBubble">
         <i class="bi bi-chat-dots-fill"></i>
     </button>
 
     <div class="ia-chat-window" id="iaChatWindow">
         <div class="ia-chat-header">
             <div class="title"><i class="bi bi-stars"></i> Assistant STAGE-UP</div>
-            <button id="iaCloseBtn" type="button"><i class="bi bi-x-lg"></i></button>
+            <button id="iaCloseBtn"><i class="bi bi-x-lg"></i></button>
         </div>
         <div class="ia-chat-body" id="iaChatBody">
             <div class="ia-msg assistant">Bonjour ! Comment puis-je vous aider aujourd'hui ?</div>
         </div>
         <div class="ia-chat-footer">
             <input type="text" id="iaInput" placeholder="Écrivez un message...">
-            <button id="iaSendBtn" type="button"><i class="bi bi-send-fill"></i></button>
+            <button id="iaSendBtn"><i class="bi bi-send-fill"></i></button>
         </div>
     </div>
 

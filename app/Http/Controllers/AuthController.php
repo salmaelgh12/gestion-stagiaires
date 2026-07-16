@@ -59,6 +59,19 @@ class AuthController extends Controller
         }
 
         Auth::login($utilisateur);
+        session()->flash('just_logged_in', true);
+
+        if ($utilisateur->role->nom_role === 'Admin') {
+            return redirect('/admin/dashboard');
+        }
+
+        if ($utilisateur->role->nom_role === 'Stagiaire') {
+            return redirect('/stagiaire/dashboard');
+        }
+
+        if ($utilisateur->role->nom_role === 'Encadrant') {
+            return redirect('/encadrant/dashboard');
+        }
 
         return redirect('/dashboard');
     }
@@ -67,6 +80,7 @@ class AuthController extends Controller
     {
         Auth::logout();
         $request->session()->invalidate();
+        $request->session()->regenerateToken();
         return redirect('/login');
     }
 

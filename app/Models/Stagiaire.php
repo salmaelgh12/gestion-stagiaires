@@ -54,4 +54,29 @@ class Stagiaire extends Model
     {
         return $this->hasMany(PieceJointe::class, 'id_stagiaire', 'id_stagiaire');
     }
+    public function getStatutCalculeAttribute()
+{
+    // Si le statut est Archivé ou Prolongé, on ne le recalcule pas automatiquement
+    if (in_array($this->statut, ['Archivé', 'Prolongé'])) {
+        return $this->statut;
+    }
+
+    $aujourdhui = now()->startOfDay();
+    $debut = $this->date_debut ? \Carbon\Carbon::parse($this->date_debut)->startOfDay() : null;
+    $fin = $this->date_fin ? \Carbon\Carbon::parse($this->date_fin)->startOfDay() : null;
+
+    if (!$debut) {
+        return $this->statut;
+    }
+
+    if ($aujourdhui->lt($debut)) {
+        return 'En attente';
+    }
+
+    if ($fin && $aujourdhui->gt($fin)) {
+        return 'Terminé';
+    }
+
+    return 'En cours';
+}
 }

@@ -16,8 +16,8 @@ class AdminSeeder extends Seeder
         Utilisateur::firstOrCreate(
             ['email' => 'admin@gestion-stagiaires.com'],
             [
-                'nom' => 'Admin',
-                'prenom' => 'Système',
+                'nom' => '',
+                'prenom' => 'Admin',
                 'mot_de_passe' => Hash::make('Admin@2026'),
                 'id_role' => $adminRole->id_role,
                 'actif' => true,
