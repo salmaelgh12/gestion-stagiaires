@@ -8,6 +8,71 @@
     <a href="/stagiaire/dashboard" class="active"><i class="bi bi-bar-chart-fill"></i> Vue d'ensemble</a>
     <a href="/stagiaire/demandes"><i class="bi bi-file-earmark-text-fill"></i> Mes demandes</a>
     <a href="/stagiaire/absences"><i class="bi bi-calendar-x"></i> Mes absences</a>
+
+    <div class="contacts-dropdown" style="margin-left:auto; position:relative; align-self:center;">
+        <button type="button" id="contactsBtn" class="btn btn-sm btn-outline-success" style="border-radius:8px;">
+            <i class="bi bi-person-lines-fill"></i> Mes contacts
+        </button>
+
+        <div id="contactsPanel" style="display:none; position:absolute; right:0; top:calc(100% + 8px); width:320px; background:white; border:1px solid #eef0f4; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.12); padding:0.6rem; z-index:1000;">
+            @if(!$monEncadrant && !$monResponsable)
+            <div class="alert alert-warning mb-2" style="font-size:0.8rem; padding:0.6rem;">
+                Vous n'êtes pas encore affecté(e) à un encadrant / responsable de compétence.
+            </div>
+            @endif
+
+            @if($monEncadrant)
+            <div class="contact-dd-row">
+                <span><i class="bi bi-person-badge-fill" style="color:#0F6E56;"></i> Encadrant<br><strong>{{ $monEncadrant->prenom }} {{ $monEncadrant->nom }}</strong></span>
+                <a href="{{ route('messages.show', $monEncadrant->id_user) }}" class="btn btn-sm btn-outline-success"><i class="bi bi-chat-dots"></i></a>
+            </div>
+            @endif
+
+            @if($monResponsable)
+            <div class="contact-dd-row">
+                <span><i class="bi bi-person-badge-fill" style="color:#4f46e5;"></i> Responsable de compétence<br><strong>{{ $monResponsable->prenom }} {{ $monResponsable->nom }}</strong></span>
+                <a href="{{ route('messages.show', $monResponsable->id_user) }}" class="btn btn-sm btn-outline-success"><i class="bi bi-chat-dots"></i></a>
+            </div>
+            @endif
+
+            @forelse($contactsRh as $rh)
+            <div class="contact-dd-row">
+                <span><i class="bi bi-person-badge-fill" style="color:#d97706;"></i> RH<br><strong>{{ $rh->prenom }} {{ $rh->nom }}</strong></span>
+                <a href="{{ route('messages.show', $rh->id_user) }}" class="btn btn-sm btn-outline-success"><i class="bi bi-chat-dots"></i></a>
+            </div>
+            @empty
+            <div class="contact-dd-row"><span style="color:#94a3b8; font-size:0.8rem;">Aucun contact RH actif.</span></div>
+            @endforelse
+        </div>
+    </div>
+
+    <style>
+        .contact-dd-row {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 0.6rem; padding: 0.6rem 0.4rem; border-bottom: 1px solid #f1f5f9;
+            font-size: 0.82rem; color: #475569;
+        }
+        .contact-dd-row:last-child { border-bottom: none; }
+    </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var btn = document.getElementById('contactsBtn');
+            var panel = document.getElementById('contactsPanel');
+            if (!btn || !panel) return;
+
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                panel.style.display = (panel.style.display === 'none') ? 'block' : 'none';
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!panel.contains(e.target) && e.target !== btn) {
+                    panel.style.display = 'none';
+                }
+            });
+        });
+    </script>
 @endsection
 
 @section('content')

@@ -29,6 +29,23 @@
             text-decoration: none;
         }
         .messages-icon:hover { color: #0F6E56; }
+        .messages-badge {
+            position: absolute;
+            top: -6px;
+            right: -8px;
+            background: #dc2626;
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 700;
+            min-width: 17px;
+            height: 17px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 3px;
+            line-height: 1;
+        }
         .user-info { text-align: right; }
         .user-info .name { font-weight: 700; color: #1e293b; font-size: 0.9rem; }
         .role-badge {
@@ -232,8 +249,16 @@
         </div>
 
         <div class="right-side">
+            @php
+                $nonLusTotal = Auth::check()
+                    ? \App\Models\Message::where('destinataire_id', Auth::id())->where('lu', false)->count()
+                    : 0;
+            @endphp
             <a href="/messages" class="messages-icon" title="Messagerie">
                 <i class="bi bi-envelope-fill"></i>
+                @if($nonLusTotal > 0)
+                <span class="messages-badge">{{ $nonLusTotal > 9 ? '9+' : $nonLusTotal }}</span>
+                @endif
             </a>
             <div class="user-info">
                 <div class="name">{{ trim(Auth::user()->prenom.' '.Auth::user()->nom) }}</div>
