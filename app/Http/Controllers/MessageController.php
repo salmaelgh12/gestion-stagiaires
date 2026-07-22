@@ -15,11 +15,20 @@ class MessageController extends Controller
     {
         $moi = Auth::id();
 
-        // Liste des utilisateurs avec qui j'ai échangé, avec le dernier message et le nb de non-lus
-        $contacts = Utilisateur::where('id_user', '!=', $moi)
+        // Utilisateurs avec qui j'ai déjà échangé au moins un message
+        $utilisateursAvecHistorique = Utilisateur::where('id_user', '!=', $moi)
             ->whereHas('messagesRecus', fn($q) => $q->where('expediteur_id', $moi))
             ->orWhereHas('messagesEnvoyes', fn($q) => $q->where('destinataire_id', $moi))
-            ->get()
+            ->get();
+
+        // Contacts autorisés selon le RBAC (encadrant/responsable/RH pour un stagiaire, etc.)
+        $contactsAutorises = $this->contactsAutorises();
+
+        // Fusion en une seule liste façon Teams : tout le monde qu'on a le droit de contacter,
+        // qu'une conversation existe déjà ou non. On ne perd jamais l'historique d'une
+        // conversation déjà entamée même si le contact n'est plus autorisé aujourd'hui.
+        $contacts = $utilisateursAvecHistorique->merge($contactsAutorises)
+            ->unique('id_user')
             ->map(function ($contact) use ($moi) {
                 $dernierMessage = Message::where(function ($q) use ($moi, $contact) {
                         $q->where('expediteur_id', $moi)->where('destinataire_id', $contact->id_user);
@@ -36,13 +45,10 @@ class MessageController extends Controller
                 $contact->non_lus = $nonLus;
                 return $contact;
             })
-            ->sortByDesc(fn($c) => $c->dernier_message->date_envoi ?? now()->subYears(10));
+            ->sortByDesc(fn($c) => $c->dernier_message->date_envoi ?? now()->subYears(50))
+            ->values();
 
-        // Le menu "+ Nouvelle conversation" ne propose que les contacts autorisés selon le rôle
-        // (encadrant/responsable/RH pour un stagiaire, ses stagiaires pour un encadrant, etc.)
-        $tousLesUtilisateurs = $this->contactsAutorises();
-
-        return view('messages.index', compact('contacts', 'tousLesUtilisateurs'));
+        return view('messages.index', compact('contacts'));
     }
 
     public function show(Utilisateur $utilisateur)

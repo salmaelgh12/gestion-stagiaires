@@ -31,11 +31,16 @@ class DemandeController extends Controller
     public function show(Demande $demande)
     {
         $demande->load('stagiaire.utilisateur', 'validations');
-        return view('encadrant.demandes.show', compact('demande'));
+        $maValidation = $demande->validations->firstWhere('role_validateur', 'Encadrant');
+        return view('encadrant.demandes.show', compact('demande', 'maValidation'));
     }
 
     public function valider(Request $request, Demande $demande)
     {
+        if ($demande->validations()->where('role_validateur', 'Encadrant')->exists()) {
+            return redirect()->route('encadrant.demandes.index')->with('error', 'Cette demande a déjà été traitée.');
+        }
+
         ValidationDemande::create([
             'id_demande' => $demande->id_demande,
             'id_validateur' => Auth::id(),
@@ -50,6 +55,10 @@ class DemandeController extends Controller
 
     public function rejeter(Request $request, Demande $demande)
     {
+        if ($demande->validations()->where('role_validateur', 'Encadrant')->exists()) {
+            return redirect()->route('encadrant.demandes.index')->with('error', 'Cette demande a déjà été traitée.');
+        }
+
         ValidationDemande::create([
             'id_demande' => $demande->id_demande,
             'id_validateur' => Auth::id(),

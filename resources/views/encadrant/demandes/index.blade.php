@@ -4,12 +4,21 @@
 @section('page-title', 'Demandes à valider')
 @section('page-subtitle', 'Demandes soumises par vos stagiaires')
 
+@php
+    $mesStagiairesIdsNav = \App\Models\AffectationStage::where('id_encadrant', Auth::id())->where('active', true)->pluck('id_stagiaire');
+    $demandesEnAttenteCount = \App\Models\Demande::whereIn('id_stagiaire', $mesStagiairesIdsNav)
+        ->whereDoesntHave('validations', fn($q) => $q->where('role_validateur', 'Encadrant'))->count();
+    $tachesEnRetardCount = \App\Models\Tache::where('id_encadrant', Auth::id())
+        ->where('date_echeance', '<', now())->where('statut', '!=', 'Terminée')->count();
+    $absencesNonTraiteesCount = \App\Models\Absence::whereIn('id_stagiaire', $mesStagiairesIdsNav)
+        ->whereNull('validee_par')->count();
+@endphp
 @section('tabs')
     <a href="/encadrant/dashboard"><i class="bi bi-bar-chart-fill"></i> Statistiques</a>
     <a href="/encadrant/stagiaires"><i class="bi bi-mortarboard-fill"></i> Mes stagiaires</a>
-    <a href="/encadrant/taches"><i class="bi bi-list-task"></i> Tâches</a>
-    <a href="/encadrant/absences"><i class="bi bi-calendar-x"></i> Absences</a>
-    <a href="/encadrant/demandes" class="active"><i class="bi bi-file-earmark-text-fill"></i> Demandes</a>
+    <a href="/encadrant/taches"><i class="bi bi-list-task"></i> Tâches @if($tachesEnRetardCount > 0)<span class="badge-count">{{ $tachesEnRetardCount > 9 ? '9+' : $tachesEnRetardCount }}</span>@endif</a>
+    <a href="/encadrant/absences"><i class="bi bi-calendar-x"></i> Absences @if($absencesNonTraiteesCount > 0)<span class="badge-count">{{ $absencesNonTraiteesCount > 9 ? '9+' : $absencesNonTraiteesCount }}</span>@endif</a>
+    <a href="/encadrant/demandes" class="active"><i class="bi bi-file-earmark-text-fill"></i> Demandes @if($demandesEnAttenteCount > 0)<span class="badge-count">{{ $demandesEnAttenteCount > 9 ? '9+' : $demandesEnAttenteCount }}</span>@endif</a>
 @endsection
 
 @section('content')

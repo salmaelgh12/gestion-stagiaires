@@ -17,6 +17,8 @@
         border: 1px solid #eef0f4;
         overflow-y: auto;
         flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
     }
     .contact-item {
         display: flex;
@@ -58,74 +60,50 @@
     }
     .empty-panel i { font-size: 3rem; }
 
-    .new-contact-select { padding: 1rem; border-bottom: 1px solid #f1f5f9; position: relative; }
-    .new-contact-select .filters-row { display: flex; gap: 0.5rem; }
-    .new-contact-select input[type="text"] {
+    .filters-bar { padding: 1rem; border-bottom: 1px solid #f1f5f9; }
+    .filters-bar .filters-row { display: flex; gap: 0.5rem; }
+    .filters-bar input[type="text"] {
         flex: 1; border-radius: 10px; border: 1px solid #e2e8f0; padding: 0.5rem 0.8rem; font-size: 0.85rem;
     }
-    .new-contact-select select {
+    .filters-bar select {
         width: 130px; border-radius: 10px; border: 1px solid #e2e8f0; padding: 0.5rem 0.4rem; font-size: 0.8rem;
     }
-    .search-results {
-        display: none;
-        position: absolute;
-        left: 1rem; right: 1rem; top: calc(100% - 0.4rem);
-        background: white;
-        border: 1px solid #eef0f4;
-        border-radius: 10px;
-        box-shadow: 0 10px 24px rgba(0,0,0,0.1);
-        max-height: 280px;
-        overflow-y: auto;
-        z-index: 50;
-    }
-    .search-results .contact-item { padding: 0.7rem 1rem; }
-    .search-results .no-result { padding: 1rem; text-align: center; color: #94a3b8; font-size: 0.85rem; }
+    .contact-list { flex: 1; overflow-y: auto; }
+    .no-result { padding: 1rem; text-align: center; color: #94a3b8; font-size: 0.85rem; }
 </style>
 
 <div class="messagerie-wrapper">
     <div class="contacts-panel">
-        <div class="new-contact-select">
+        <div class="filters-bar">
             <div class="filters-row">
                 <input type="text" id="searchContact" placeholder="Rechercher un nom..." autocomplete="off">
                 <select id="roleFilter">
                     <option value="">Tous les rôles</option>
-                    @foreach($tousLesUtilisateurs->pluck('role.nom_role')->unique()->filter() as $roleNom)
+                    @foreach($contacts->pluck('role.nom_role')->unique()->filter() as $roleNom)
                         <option value="{{ $roleNom }}">{{ $roleNom }}</option>
                     @endforeach
                 </select>
             </div>
-
-            <div class="search-results" id="searchResults">
-                @forelse($tousLesUtilisateurs as $u)
-                <a href="{{ route('messages.show', $u->id_user) }}" class="contact-item"
-                   data-nom="{{ mb_strtolower($u->prenom.' '.$u->nom) }}" data-role="{{ $u->role->nom_role }}">
-                    <div class="contact-avatar">{{ substr($u->prenom, 0, 1) }}{{ substr($u->nom, 0, 1) }}</div>
-                    <div class="contact-info">
-                        <div class="contact-name">{{ $u->prenom }} {{ $u->nom }}</div>
-                        <div class="contact-preview">{{ $u->role->nom_role }}</div>
-                    </div>
-                </a>
-                @empty
-                <div class="no-result">Aucun contact disponible.</div>
-                @endforelse
-                <div class="no-result" id="noResultMsg" style="display:none;">Aucun résultat.</div>
-            </div>
         </div>
 
-        @forelse($contacts as $c)
-        <a href="{{ route('messages.show', $c->id_user) }}" class="contact-item">
-            <div class="contact-avatar">{{ substr($c->prenom, 0, 1) }}{{ substr($c->nom, 0, 1) }}</div>
-            <div class="contact-info">
-                <div class="contact-name">{{ $c->prenom }} {{ $c->nom }}</div>
-                <div class="contact-preview">{{ $c->dernier_message->contenu ?? '' }}</div>
-            </div>
-            @if($c->non_lus > 0)
-                <div class="contact-badge">{{ $c->non_lus }}</div>
-            @endif
-        </a>
-        @empty
-        <div class="text-center text-muted p-4" style="font-size:0.9rem;">Aucune conversation. Sélectionnez un contact ci-dessus pour commencer.</div>
-        @endforelse
+        <div class="contact-list" id="contactList">
+            @forelse($contacts as $c)
+            <a href="{{ route('messages.show', $c->id_user) }}" class="contact-item"
+               data-nom="{{ mb_strtolower($c->prenom.' '.$c->nom) }}" data-role="{{ $c->role->nom_role ?? '' }}">
+                <div class="contact-avatar">{{ substr($c->prenom, 0, 1) }}{{ substr($c->nom, 0, 1) }}</div>
+                <div class="contact-info">
+                    <div class="contact-name">{{ $c->prenom }} {{ $c->nom }}</div>
+                    <div class="contact-preview">{{ $c->dernier_message->contenu ?? ($c->role->nom_role ?? '') }}</div>
+                </div>
+                @if($c->non_lus > 0)
+                    <div class="contact-badge">{{ $c->non_lus }}</div>
+                @endif
+            </a>
+            @empty
+            <div class="no-result">Aucun contact disponible.</div>
+            @endforelse
+            <div class="no-result" id="noResultMsg" style="display:none;">Aucun résultat.</div>
+        </div>
     </div>
 
     <div class="empty-panel">
@@ -138,9 +116,8 @@
     document.addEventListener('DOMContentLoaded', function () {
         var searchInput = document.getElementById('searchContact');
         var roleFilter = document.getElementById('roleFilter');
-        var resultsPanel = document.getElementById('searchResults');
         var noResultMsg = document.getElementById('noResultMsg');
-        var items = resultsPanel.querySelectorAll('.contact-item');
+        var items = document.querySelectorAll('#contactList .contact-item');
 
         function applyFilters() {
             var texte = searchInput.value.trim().toLowerCase();
@@ -158,26 +135,8 @@
             noResultMsg.style.display = (visibleCount === 0 && items.length > 0) ? 'block' : 'none';
         }
 
-        searchInput.addEventListener('input', function () {
-            resultsPanel.style.display = 'block';
-            applyFilters();
-        });
-
-        searchInput.addEventListener('focus', function () {
-            resultsPanel.style.display = 'block';
-            applyFilters();
-        });
-
-        roleFilter.addEventListener('change', function () {
-            resultsPanel.style.display = 'block';
-            applyFilters();
-        });
-
-        document.addEventListener('click', function (e) {
-            if (!resultsPanel.contains(e.target) && e.target !== searchInput && e.target !== roleFilter) {
-                resultsPanel.style.display = 'none';
-            }
-        });
+        searchInput.addEventListener('input', applyFilters);
+        roleFilter.addEventListener('change', applyFilters);
     });
 </script>
 @endsection

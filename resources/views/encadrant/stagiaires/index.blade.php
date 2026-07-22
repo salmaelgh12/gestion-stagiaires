@@ -1,13 +1,24 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Mes stagiaires - STAGE-UP')
-@section('page-title', 'Mes stagiaires')
-@section('page-subtitle', 'Stagiaires actuellement sous votre encadrement')
+@section('title', 'Absences - STAGE-UP')
+@section('page-title', 'Gestion des absences')
+@section('page-subtitle', 'Validez les absences de vos stagiaires')
 
+@php
+    $mesStagiairesIdsNav = \App\Models\AffectationStage::where('id_encadrant', Auth::id())->where('active', true)->pluck('id_stagiaire');
+    $demandesEnAttenteCount = \App\Models\Demande::whereIn('id_stagiaire', $mesStagiairesIdsNav)
+        ->whereDoesntHave('validations', fn($q) => $q->where('role_validateur', 'Encadrant'))->count();
+    $tachesEnRetardCount = \App\Models\Tache::where('id_encadrant', Auth::id())
+        ->where('date_echeance', '<', now())->where('statut', '!=', 'Terminée')->count();
+    $absencesNonTraiteesCount = \App\Models\Absence::whereIn('id_stagiaire', $mesStagiairesIdsNav)
+        ->whereNull('validee_par')->count();
+@endphp
 @section('tabs')
     <a href="/encadrant/dashboard"><i class="bi bi-bar-chart-fill"></i> Statistiques</a>
-    <a href="/encadrant/stagiaires" class="active"><i class="bi bi-mortarboard-fill"></i> Mes stagiaires</a>
-    <a href="/encadrant/taches"><i class="bi bi-list-task"></i> Tâches</a>
+    <a href="/encadrant/stagiaires"><i class="bi bi-mortarboard-fill"></i> Mes stagiaires</a>
+    <a href="/encadrant/taches"><i class="bi bi-list-task"></i> Tâches @if($tachesEnRetardCount > 0)<span class="badge-count">{{ $tachesEnRetardCount > 9 ? '9+' : $tachesEnRetardCount }}</span>@endif</a>
+    <a href="/encadrant/absences" class="active"><i class="bi bi-calendar-x"></i> Absences @if($absencesNonTraiteesCount > 0)<span class="badge-count">{{ $absencesNonTraiteesCount > 9 ? '9+' : $absencesNonTraiteesCount }}</span>@endif</a>
+    <a href="/encadrant/demandes"><i class="bi bi-file-earmark-text-fill"></i> Demandes @if($demandesEnAttenteCount > 0)<span class="badge-count">{{ $demandesEnAttenteCount > 9 ? '9+' : $demandesEnAttenteCount }}</span>@endif</a>
 @endsection
 
 @section('content')
@@ -16,49 +27,70 @@
     .table-card table { margin: 0; }
     .table-card th { background: #f8fafc; font-size: 0.8rem; color: #64748b; font-weight: 700; border-bottom: 1px solid #eef0f4; padding: 1rem; }
     .table-card td { padding: 1rem; vertical-align: middle; border-bottom: 1px solid #f1f5f9; }
-    .avatar-sm {
-        width: 36px; height: 36px; border-radius: 50%;
-        background: #eef2ff; color: #4f46e5;
-        display: flex; align-items: center; justify-content: center;
-        font-weight: 700; font-size: 0.8rem;
-    }
+    .statut-pill { font-size: 0.75rem; font-weight: 600; padding: 0.25rem 0.7rem; border-radius: 20px; display: inline-block; }
+    .statut-attente { background: #fffbeb; color: #d97706; }
+    .statut-justifiee { background: #eafaf5; color: #0F6E56; }
+    .statut-refusee { background: #fef2f2; color: #dc2626; }
+    .btn-action { border: none; border-radius: 8px; padding: 0.4rem 0.9rem; font-size: 0.8rem; font-weight: 600; }
+    .btn-valider { background: #eafaf5; color: #0F6E56; }
+    .btn-refuser { background: #fef2f2; color: #dc2626; }
 </style>
+
+@if(session('success'))
+    <div class="alert alert-success">{{ session('success') }}</div>
+@endif
 
 <div class="table-card">
     <table class="table">
         <thead>
             <tr>
                 <th>Stagiaire</th>
-                <th>École / Filière</th>
-                <th>Stage</th>
-                <th>Score</th>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Motif</th>
+                <th>Statut</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
-            @forelse($affectations as $a)
+            @forelse($absences as $a)
             <tr>
+                <td style="font-weight:600; color:#1e293b;">{{ $a->stagiaire->utilisateur->prenom ?? '—' }} {{ $a->stagiaire->utilisateur->nom ?? '' }}</td>
+                <td>{{ \Carbon\Carbon::parse($a->date_absence)->format('d/m/Y') }}</td>
+                <td>{{ $a->type_absence }}</td>
+                <td class="text-muted">{{ $a->motif ?: '—' }}</td>
                 <td>
-                    <div class="d-flex align-items-center gap-2">
-                        <div class="avatar-sm">{{ substr($a->stagiaire->utilisateur->prenom ?? '?', 0, 1) }}{{ substr($a->stagiaire->utilisateur->nom ?? '?', 0, 1) }}</div>
-                        <div>
-                            <div style="font-weight:600; color:#1e293b;">{{ $a->stagiaire->utilisateur->prenom ?? '—' }} {{ $a->stagiaire->utilisateur->nom ?? '' }}</div>
-                            <div class="text-muted" style="font-size:0.8rem;">{{ $a->stagiaire->utilisateur->email ?? '—' }}</div>
-                        </div>
-                    </div>
+                    @if(is_null($a->validee_par))
+                        <span class="statut-pill statut-attente">En attente</span>
+                    @elseif($a->justifiee)
+                        <span class="statut-pill statut-justifiee">Justifiée</span>
+                    @else
+                        <span class="statut-pill statut-refusee">Non justifiée</span>
+                    @endif
                 </td>
                 <td>
-                    <div>{{ $a->stagiaire->ecole ?? '—' }}</div>
-                    <div class="text-muted" style="font-size:0.85rem;">{{ $a->stagiaire->filiere ?? '—' }}</div>
+                    @if(is_null($a->validee_par))
+                        <form method="POST" action="{{ route('encadrant.absences.valider', $a->id_absence) }}" class="d-inline">
+                            @csrf @method('PATCH')
+                            <button type="submit" class="btn-action btn-valider">Valider</button>
+                        </form>
+                        <form method="POST" action="{{ route('encadrant.absences.refuser', $a->id_absence) }}" class="d-inline">
+                            @csrf @method('PATCH')
+                            <button type="submit" class="btn-action btn-refuser">Refuser</button>
+                        </form>
+                    @else
+                        <span class="text-muted" style="font-size:0.85rem;">Traité</span>
+                    @endif
                 </td>
-                <td>{{ $a->stage->titre ?? '—' }}</td>
-                <td><strong>{{ $a->stagiaire->score_global ?? 0 }}/100</strong></td>
             </tr>
             @empty
             <tr>
-                <td colspan="4" class="text-center text-muted py-4">Aucun stagiaire ne vous est actuellement affecté.</td>
+                <td colspan="6" class="text-center text-muted py-4">Aucune absence déclarée.</td>
             </tr>
             @endforelse
         </tbody>
     </table>
 </div>
+
+<div class="mt-3">{{ $absences->links() }}</div>
 @endsection
