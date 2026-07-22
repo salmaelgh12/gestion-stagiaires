@@ -30,44 +30,46 @@ class UtilisateurController extends Controller
     }
 
     public function store(Request $request)
-{
-    $request->validate([
-        'nom' => 'required|string|max:255',
-        'prenom' => 'required|string|max:255',
-        'email' => 'required|email|unique:utilisateurs,email',
-        'telephone' => 'nullable|string|max:20',
-        'mot_de_passe' => 'required|min:6',
-        'id_role' => 'required|exists:roles,id_role',
-    ]);
-
-    $utilisateur = Utilisateur::create([
-        'nom' => $request->nom,
-        'prenom' => $request->prenom,
-        'email' => $request->email,
-        'telephone' => $request->telephone,
-        'mot_de_passe' => Hash::make($request->mot_de_passe),
-        'id_role' => $request->id_role,
-        'actif' => true,
-    ]);
-
-    $role = Role::find($request->id_role);
-
-    if ($role && $role->nom_role === 'Stagiaire') {
-        \App\Models\Stagiaire::create([
-            'id_user' => $utilisateur->id_user,
-            'ecole' => $request->ecole,
-            'filiere' => $request->filiere,
-            'niveau_etude' => $request->niveau_etude,
-            'date_debut' => $request->date_debut,
-            'date_fin' => $request->date_fin,
-            'statut' => 'En attente',
-            'score_global' => 0,
-            'archive' => false,
+    {
+        $request->validate([
+            'nom' => 'required|string|max:255',
+            'prenom' => 'required|string|max:255',
+            'email' => 'required|email|unique:utilisateurs,email',
+            'telephone' => 'nullable|digits:10',
+            'mot_de_passe' => 'required|min:6',
+            'id_role' => 'required|exists:roles,id_role',
+        ], [
+            'telephone.digits' => 'Le numéro de téléphone doit contenir exactement 10 chiffres.',
         ]);
-    }
 
-    return redirect()->route('admin.utilisateurs.index')->with('success', 'Utilisateur créé avec succès.');
-}
+        $utilisateur = Utilisateur::create([
+            'nom' => $request->nom,
+            'prenom' => $request->prenom,
+            'email' => $request->email,
+            'telephone' => $request->telephone,
+            'mot_de_passe' => Hash::make($request->mot_de_passe),
+            'id_role' => $request->id_role,
+            'actif' => true,
+        ]);
+
+        $role = Role::find($request->id_role);
+
+        if ($role && $role->nom_role === 'Stagiaire') {
+            \App\Models\Stagiaire::create([
+                'id_user' => $utilisateur->id_user,
+                'ecole' => $request->ecole,
+                'filiere' => $request->filiere,
+                'niveau_etude' => $request->niveau_etude,
+                'date_debut' => $request->date_debut,
+                'date_fin' => $request->date_fin,
+                'statut' => 'En attente',
+                'score_global' => 0,
+                'archive' => false,
+            ]);
+        }
+
+        return redirect()->route('admin.utilisateurs.index')->with('success', 'Utilisateur créé avec succès.');
+    }
 
     public function edit(Utilisateur $utilisateur)
     {
@@ -81,8 +83,10 @@ class UtilisateurController extends Controller
             'nom' => 'required|string|max:255',
             'prenom' => 'required|string|max:255',
             'email' => 'required|email|unique:utilisateurs,email,' . $utilisateur->id_user . ',id_user',
-            'telephone' => 'nullable|string|max:20',
+            'telephone' => 'nullable|digits:10',
             'id_role' => 'required|exists:roles,id_role',
+        ], [
+            'telephone.digits' => 'Le numéro de téléphone doit contenir exactement 10 chiffres.',
         ]);
 
         $utilisateur->update([
@@ -103,31 +107,31 @@ class UtilisateurController extends Controller
     }
 
     public function destroy(Utilisateur $utilisateur)
-{
-    // Supprime d'abord l'enregistrement stagiaire lié, s'il existe
-    if ($utilisateur->stagiaire) {
-        $utilisateur->stagiaire->delete();
+    {
+        if ($utilisateur->stagiaire) {
+            $utilisateur->stagiaire->delete();
+        }
+
+        $utilisateur->delete();
+
+        return redirect()->route('admin.utilisateurs.index')->with('success', 'Utilisateur supprimé.');
     }
 
-    $utilisateur->delete();
+    public function showResetPassword(Utilisateur $utilisateur)
+    {
+        return view('admin.utilisateurs.reset-password', compact('utilisateur'));
+    }
 
-    return redirect()->route('admin.utilisateurs.index')->with('success', 'Utilisateur supprimé.');
-}
-public function showResetPassword(Utilisateur $utilisateur)
-{
-    return view('admin.utilisateurs.reset-password', compact('utilisateur'));
-}
+    public function resetPassword(Request $request, Utilisateur $utilisateur)
+    {
+        $request->validate([
+            'mot_de_passe' => 'required|min:6|confirmed',
+        ]);
 
-public function resetPassword(Request $request, Utilisateur $utilisateur)
-{
-    $request->validate([
-        'mot_de_passe' => 'required|min:6|confirmed',
-    ]);
+        $utilisateur->update([
+            'mot_de_passe' => Hash::make($request->mot_de_passe),
+        ]);
 
-    $utilisateur->update([
-        'mot_de_passe' => \Illuminate\Support\Facades\Hash::make($request->mot_de_passe),
-    ]);
-
-    return redirect()->route('admin.utilisateurs.index')->with('success', 'Mot de passe modifié avec succès pour ' . $utilisateur->prenom . ' ' . $utilisateur->nom . '.');
-}
+        return redirect()->route('admin.utilisateurs.index')->with('success', 'Mot de passe modifié avec succès pour ' . $utilisateur->prenom . ' ' . $utilisateur->nom . '.');
+    }
 }

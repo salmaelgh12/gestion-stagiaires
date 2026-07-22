@@ -73,6 +73,14 @@ class AuthController extends Controller
             return redirect('/encadrant/dashboard');
         }
 
+        if ($utilisateur->role->nom_role === 'Responsable de compétence') {
+            return redirect('/responsable/dashboard');
+        }
+
+        if ($utilisateur->role->nom_role === 'RH') {
+            return redirect('/rh/dashboard');
+        }
+
         return redirect('/dashboard');
     }
 
@@ -116,7 +124,11 @@ class AuthController extends Controller
         ]);
 
         $status = Password::reset(
-            $request->only('email', 'mot_de_passe', 'mot_de_passe_confirmation', 'token'),
+            [
+                'email' => $request->email,
+                'token' => $request->token,
+                'password' => $request->mot_de_passe,
+            ],
             function ($utilisateur, $password) {
                 $utilisateur->forceFill([
                     'mot_de_passe' => Hash::make($password),

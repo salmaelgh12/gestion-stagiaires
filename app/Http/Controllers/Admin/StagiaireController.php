@@ -11,35 +11,42 @@ use Illuminate\Http\Request;
 class StagiaireController extends Controller
 {
     public function index(Request $request)
-{
-    $query = Stagiaire::with('utilisateur');
+    {
+        $query = Stagiaire::with('utilisateur');
 
-    // Filtre par statut
-    if ($request->filled('statut')) {
-        $query->where('statut', $request->statut);
+        // Filtre par statut
+        if ($request->filled('statut')) {
+            $query->where('statut', $request->statut);
+        }
+
+        // Recherche par nom/prénom/email
+        if ($request->filled('recherche')) {
+            $recherche = $request->recherche;
+            $query->whereHas('utilisateur', function ($q) use ($recherche) {
+                $q->where('nom', 'like', "%{$recherche}%")
+                  ->orWhere('prenom', 'like', "%{$recherche}%")
+                  ->orWhere('email', 'like', "%{$recherche}%");
+            });
+        }
+
+        $stagiaires = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+
+        foreach ($stagiaires as $s) {
+            $nouveauScore = $s->calculerScore();
+            if ($s->score_global != $nouveauScore) {
+                $s->update(['score_global' => $nouveauScore]);
+            }
+        }
+
+        $totalUtilisateurs = Utilisateur::count();
+        $totalStagiaires = Stagiaire::count();
+        $stagiairesActifs = $stagiaires->filter(fn($s) => $s->statut_calcule === 'En cours')->count();
+        $demandesEnAttente = Demande::where('statut', 'En attente')->count();
+
+        return view('admin.stagiaires.index', compact(
+            'stagiaires', 'totalUtilisateurs', 'totalStagiaires', 'stagiairesActifs', 'demandesEnAttente'
+        ));
     }
-
-    // Recherche par nom/prénom/email
-    if ($request->filled('recherche')) {
-        $recherche = $request->recherche;
-        $query->whereHas('utilisateur', function ($q) use ($recherche) {
-            $q->where('nom', 'like', "%{$recherche}%")
-              ->orWhere('prenom', 'like', "%{$recherche}%")
-              ->orWhere('email', 'like', "%{$recherche}%");
-        });
-    }
-
-    $stagiaires = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
-
-    $totalUtilisateurs = Utilisateur::count();
-    $totalStagiaires = Stagiaire::count();
-    $stagiairesActifs = $stagiaires->filter(fn($s) => $s->statut_calcule === 'En cours')->count();
-    $demandesEnAttente = Demande::where('statut', 'En attente')->count();
-
-    return view('admin.stagiaires.index', compact(
-        'stagiaires', 'totalUtilisateurs', 'totalStagiaires', 'stagiairesActifs', 'demandesEnAttente'
-    ));
-}
 
     public function edit(Stagiaire $stagiaire)
     {

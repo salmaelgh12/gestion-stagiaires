@@ -14,6 +14,16 @@ use App\Http\Controllers\Encadrant\DashboardController as EncadrantDashboardCont
 use App\Http\Controllers\Encadrant\StagiaireController as EncadrantStagiaireController;
 use App\Http\Controllers\Encadrant\TacheController;
 use App\Http\Controllers\Encadrant\AbsenceController as EncadrantAbsenceController;
+use App\Http\Controllers\Encadrant\DemandeController as EncadrantDemandeController;
+use App\Http\Controllers\Responsable\DashboardController as ResponsableDashboardController;
+use App\Http\Controllers\Responsable\StagiaireController as ResponsableStagiaireController;
+use App\Http\Controllers\Responsable\DemandeController as ResponsableDemandeController;
+use App\Http\Controllers\Responsable\StageController as ResponsableStageController;
+use App\Http\Controllers\Responsable\AffectationController;
+use App\Http\Controllers\Responsable\AjoutStagiaireController;
+use App\Http\Controllers\RH\DashboardController as RHDashboardController;
+use App\Http\Controllers\RH\DemandeController as RHDemandeController;
+use App\Http\Controllers\RH\AttestationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -77,6 +87,43 @@ Route::middleware(['auth', 'role:Encadrant'])->prefix('encadrant')->name('encadr
     Route::get('/absences', [EncadrantAbsenceController::class, 'index'])->name('absences.index');
     Route::patch('/absences/{absence}/valider', [EncadrantAbsenceController::class, 'valider'])->name('absences.valider');
     Route::patch('/absences/{absence}/refuser', [EncadrantAbsenceController::class, 'refuser'])->name('absences.refuser');
+
+    Route::get('/demandes', [EncadrantDemandeController::class, 'index'])->name('demandes.index');
+    Route::get('/demandes/{demande}', [EncadrantDemandeController::class, 'show'])->name('demandes.show');
+    Route::post('/demandes/{demande}/valider', [EncadrantDemandeController::class, 'valider'])->name('demandes.valider');
+    Route::post('/demandes/{demande}/rejeter', [EncadrantDemandeController::class, 'rejeter'])->name('demandes.rejeter');
+});
+
+Route::middleware(['auth', 'role:Responsable de compétence'])->prefix('responsable')->name('responsable.')->group(function () {
+    Route::get('/dashboard', [ResponsableDashboardController::class, 'index'])->name('dashboard');
+
+    Route::get('/stagiaires', [ResponsableStagiaireController::class, 'index'])->name('stagiaires.index');
+    Route::get('/stagiaires/create', [AjoutStagiaireController::class, 'create'])->name('stagiaires.create');
+    Route::post('/stagiaires', [AjoutStagiaireController::class, 'store'])->name('stagiaires.store');
+
+    Route::get('/demandes', [ResponsableDemandeController::class, 'index'])->name('demandes.index');
+    Route::get('/demandes/{demande}', [ResponsableDemandeController::class, 'show'])->name('demandes.show');
+    Route::post('/demandes/{demande}/valider', [ResponsableDemandeController::class, 'valider'])->name('demandes.valider');
+    Route::post('/demandes/{demande}/rejeter', [ResponsableDemandeController::class, 'rejeter'])->name('demandes.rejeter');
+
+    Route::get('/stages', [ResponsableStageController::class, 'index'])->name('stages.index');
+    Route::get('/stages/create', [ResponsableStageController::class, 'create'])->name('stages.create');
+    Route::post('/stages', [ResponsableStageController::class, 'store'])->name('stages.store');
+
+    Route::get('/affectations', [AffectationController::class, 'index'])->name('affectations.index');
+    Route::get('/affectations/create', [AffectationController::class, 'create'])->name('affectations.create');
+    Route::post('/affectations', [AffectationController::class, 'store'])->name('affectations.store');
+});
+
+Route::middleware(['auth', 'role:RH'])->prefix('rh')->name('rh.')->group(function () {
+    Route::get('/dashboard', [RHDashboardController::class, 'index'])->name('dashboard');
+
+    Route::get('/demandes', [RHDemandeController::class, 'index'])->name('demandes.index');
+    Route::get('/demandes/{demande}', [RHDemandeController::class, 'show'])->name('demandes.show');
+    Route::post('/demandes/{demande}/valider', [RHDemandeController::class, 'valider'])->name('demandes.valider');
+    Route::post('/demandes/{demande}/rejeter', [RHDemandeController::class, 'rejeter'])->name('demandes.rejeter');
+
+    Route::get('/attestations', [AttestationController::class, 'index'])->name('attestations.index');
 });
 
 Route::middleware('auth')->group(function () {
